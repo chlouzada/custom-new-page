@@ -77,6 +77,7 @@ const NewTabContent = () => {
         {!token ? (
           <Center style={{ height: '80vh' }}>
             <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
+              <Title order={3} mb="md">Welcome to CNP</Title>
               <Text c="dimmed">
                 Please configure your GitHub Personal Access Token in the extension popup to get started.
               </Text>

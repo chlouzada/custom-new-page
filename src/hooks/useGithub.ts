@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllRecentRepos, validateToken, fetchPrCount, fetchRecentActions, rerunWorkflow, fetchUserProfile, fetchUserOrgs, fetchBranches, createPullRequest } from "../services/github";
+import { fetchAllRecentRepos, validateToken, fetchPrCount, fetchRecentActions, rerunWorkflow, fetchUserProfile, fetchUserOrgs } from "../services/github";
 
 export function useGithubUser(token: string | null) {
   return useQuery({
@@ -64,24 +64,3 @@ export function useValidateToken() {
     mutationFn: validateToken,
   });
 }
-
-export function useGithubBranches(token: string | null, owner: string, name: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ["branches", owner, name],
-    queryFn: () => fetchBranches(token!, owner, name),
-    enabled: !!token && enabled,
-    staleTime: 1000 * 60 * 5,
-  });
-}
-
-export function useCreatePullRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ token, owner, name, title, head, base }: { token: string; owner: string; name: string; title: string; head: string; base: string }) => 
-      createPullRequest(token, owner, name, title, head, base),
-    onSuccess: (_, { owner, name }) => {
-      queryClient.invalidateQueries({ queryKey: ["pr-count", owner, name] });
-    },
-  });
-}
-

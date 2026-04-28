@@ -171,33 +171,3 @@ export async function rerunWorkflow(token: string, owner: string, name: string, 
 
   return response.ok;
 }
-
-export async function fetchBranches(token: string, owner: string, name: string): Promise<{name: string}[]> {
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${name}/branches?per_page=100`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
-  if (!response.ok) return [];
-  return response.json();
-}
-
-export async function createPullRequest(token: string, owner: string, name: string, title: string, head: string, base: string) {
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${name}/pulls`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title, head, base }),
-    }
-  );
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create PR");
-  }
-  return response.json();
-}

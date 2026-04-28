@@ -3,7 +3,6 @@ import { Table, Text, Group, Avatar, Button, Tooltip, Skeleton, Stack, Badge, Lo
 import { GithubRepo } from "../types/github";
 import { usePrCount } from "../hooks/useGithub";
 import { ActionsModal } from "./ActionsModal";
-import { CreatePrModal } from "./CreatePrModal";
 import { useInViewport } from "@mantine/hooks";
 
 interface RepoGridProps {
@@ -13,28 +12,13 @@ interface RepoGridProps {
 }
 
 // Componente para exibir contagem de PRs
-const PrCountBadge = ({ repo, token, owner, name, onOpenPrModal }: { repo: GithubRepo; token: string | null; owner: string; name: string; onOpenPrModal: (repo: GithubRepo) => void }) => {
+const PrCountBadge = ({ token, owner, name }: { token: string | null; owner: string; name: string }) => {
   const { ref, inViewport } = useInViewport();
   const { data: count, isLoading } = usePrCount(token, owner, name, inViewport);
 
   if (isLoading) return <Loader ref={ref} size={12} color="gray" />;
   
-  if (!count || count === 0) return (
-    <Badge
-      ref={ref}
-      size="sm"
-      variant="light"
-      color="gray"
-      style={{ cursor: 'pointer' }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onOpenPrModal(repo);
-      }}
-    >
-      Criar PR
-    </Badge>
-  );
+  if (!count || count === 0) return <Text ref={ref} size="xs" c="dimmed">-</Text>;
   
   return (
     <Badge 
@@ -82,7 +66,6 @@ const CopyActionButton = ({ text, label }: { text: string; label: string }) => {
 
 export function RepoGrid({ repos, loading, token }: RepoGridProps) {
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
-  const [selectedPrRepo, setSelectedPrRepo] = useState<GithubRepo | null>(null);
   const { colorScheme } = useMantineColorScheme();
 
   if (loading) {
@@ -140,7 +123,7 @@ export function RepoGrid({ repos, loading, token }: RepoGridProps) {
       </Table.Td>
       
       <Table.Td width={100}>
-        <PrCountBadge repo={repo} token={token} owner={repo.owner.login} name={repo.name} onOpenPrModal={setSelectedPrRepo} />
+        <PrCountBadge token={token} owner={repo.owner.login} name={repo.name} />
       </Table.Td>
 
       <Table.Td width={100}>
@@ -205,13 +188,6 @@ export function RepoGrid({ repos, loading, token }: RepoGridProps) {
         token={token} 
         opened={!!selectedRepo} 
         onClose={() => setSelectedRepo(null)} 
-      />
-
-      <CreatePrModal
-        repo={selectedPrRepo}
-        token={token}
-        opened={!!selectedPrRepo}
-        onClose={() => setSelectedPrRepo(null)}
       />
     </>
   );

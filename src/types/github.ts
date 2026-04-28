@@ -31,20 +31,3 @@ export interface GithubRepo {
     avatar_url: string;
   };
 }
-
-export interface GithubBranch {
-  name: string;
-  commit: {
-    sha: string;
-    url: string;
-  };
-  protected: boolean;
-}
-
-export interface GithubPullRequest {
-  id: number;
-  number: number;
-  state: string;
-  title: string;
-  html_url: string;
-}
