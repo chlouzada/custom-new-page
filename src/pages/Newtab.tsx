@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MantineProvider, Container, Title, Button, Group, TextInput, Paper, Text, Stack, useMantineColorScheme, Center } from "@mantine/core";
+import { MantineProvider, Container, Button, Group, TextInput, Paper, Text, Stack, useMantineColorScheme, Center, Anchor } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import browser from "webextension-polyfill";
 import "../global.css";
@@ -77,10 +77,10 @@ const NewTabContent = () => {
         {!token ? (
           <Center style={{ height: '80vh' }}>
             <Paper p="xl" radius="md" withBorder style={{ textAlign: 'center' }}>
-              <Title order={3} mb="md">Welcome to CNP</Title>
               <Text c="dimmed">
                 Please configure your GitHub Personal Access Token in the extension popup to get started.
               </Text>
+              <Anchor href="https://github.com/settings/tokens/new?description=custom-new-page&scopes=repo,read:project&default_expires_at=90">Create Classic PAT</Anchor>
             </Paper>
           </Center>
         ) : (
