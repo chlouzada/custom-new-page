@@ -5,6 +5,7 @@ import browser from "webextension-polyfill";
 import "../global.css";
 import "./Newtab.css";
 
+import { OtpModal } from "../components/OtpModal";
 import { RepoGrid } from "../components/RepoGrid";
 import { useGithubRepos, useGithubUser, useGithubOrgs } from "../hooks/useGithub";
 
@@ -14,6 +15,7 @@ const queryClient = new QueryClient();
 const NewTabContent = () => {
   const [token, setToken] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [otpModalOpened, setOtpModalOpened] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const { colorScheme } = useMantineColorScheme();
 
@@ -86,30 +88,40 @@ const NewTabContent = () => {
         ) : (
           <Stack gap="lg">
             {user && (
-              <Group>
-                <Button 
-                  component="a" 
-                  href={`https://github.com/${user.login}?tab=repositories`}
-                  target="_blank"
-                  variant="default"
-                  size="xs"
-                >
-                  My Repos
-                </Button>
-                {orgs.map((org) => (
-                  <Button
-                    key={org.id}
-                    component="a"
-                    href={`https://github.com/orgs/${org.login}/repositories`}
-                    target="_blank"
-                    variant="default"
-                    size="xs"
-                    leftSection={<img src={org.avatar_url} alt={org.login} style={{ width: 16, height: 16, borderRadius: '50%' }} />}
-                  >
-                    {org.login}
+              <>
+                <Group justify="space-between" align="flex-start">
+                  <Group>
+                    <Button 
+                      component="a" 
+                      href={`https://github.com/${user.login}?tab=repositories`}
+                      target="_blank"
+                      variant="default"
+                      size="xs"
+                    >
+                      My Repos
+                    </Button>
+                    {orgs.map((org) => (
+                      <Button
+                        key={org.id}
+                        component="a"
+                        href={`https://github.com/orgs/${org.login}/repositories`}
+                        target="_blank"
+                        variant="default"
+                        size="xs"
+                        leftSection={<img src={org.avatar_url} alt={org.login} style={{ width: 16, height: 16, borderRadius: '50%' }} />}
+                      >
+                        {org.login}
+                      </Button>
+                    ))}
+                  </Group>
+
+                  <Button variant="default" size="xs" onClick={() => setOtpModalOpened(true)}>
+                    OTP
                   </Button>
-                ))}
-              </Group>
+                </Group>
+
+                <OtpModal opened={otpModalOpened} onClose={() => setOtpModalOpened(false)} />
+              </>
             )}
 
             <Paper py="xs" px="md" shadow="sm" radius="md">
