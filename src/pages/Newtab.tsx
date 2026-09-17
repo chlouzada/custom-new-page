@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MantineProvider, Container, Button, Group, TextInput, Paper, Text, Stack, useMantineColorScheme, Center, Anchor } from "@mantine/core";
+import { MantineProvider, Container, Button, Group, TextInput, Paper, Text, Stack, useMantineColorScheme, Center, Anchor, ActionIcon, Menu } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import browser from "webextension-polyfill";
 import "../global.css";
@@ -12,9 +12,16 @@ import { useGithubRepos, useGithubUser, useGithubOrgs } from "../hooks/useGithub
 // Instância do React Query Client
 const queryClient = new QueryClient();
 
+interface OwnerFilterOption {
+  label: string;
+  owner: string;
+  avatarUrl?: string;
+}
+
 const NewTabContent = () => {
   const [token, setToken] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState<string | null>(null);
   const [otpModalOpened, setOtpModalOpened] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const { colorScheme } = useMantineColorScheme();
@@ -23,6 +30,12 @@ const NewTabContent = () => {
   const { data: repos = [], isLoading: reposLoading } = useGithubRepos(token);
   const { data: user } = useGithubUser(token);
   const { data: orgs = [] } = useGithubOrgs(token);
+  const ownerFilterOptions: OwnerFilterOption[] = user
+    ? [
+        { label: "My Repos", owner: user.login, avatarUrl: user.avatar_url },
+        ...orgs.map((org) => ({ label: org.login, owner: org.login, avatarUrl: org.avatar_url })),
+      ]
+    : [];
 
   // Load token on mount and listen for changes
   useEffect(() => {
@@ -67,10 +80,16 @@ const NewTabContent = () => {
     const query = searchQuery.toLowerCase();
     const nameMatch = repo.name.toLowerCase().includes(query);
     const orgMatch = repo.owner.login.toLowerCase().includes(query);
-    return nameMatch || orgMatch;
+    const ownerMatchesFilter = !ownerFilter || repo.owner.login.toLowerCase() === ownerFilter.toLowerCase();
+    return (nameMatch || orgMatch) && ownerMatchesFilter;
   });
 
   const bgColor = colorScheme === 'dark' ? 'var(--mantine-color-dark-8)' : 'var(--mantine-color-gray-2)';
+  const filterIcon = (
+    <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18l-7 8v6l-4 2v-8L3 4z" />
+    </svg>
+  );
 
   return (
     <div style={{ backgroundColor: bgColor, minHeight: "100vh", paddingBottom: "2rem" }}>
@@ -126,7 +145,7 @@ const NewTabContent = () => {
 
             <Paper py="xs" px="md" shadow="sm" radius="md">
               <Group align="center" gap="md">
-                  <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
                   <TextInput
                     ref={searchInputRef}
                     placeholder="Pesquisar repositórios ou organizações..."
@@ -138,6 +157,46 @@ const NewTabContent = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     }
+                    rightSection={
+                      <Menu shadow="md" width={220} position="bottom-end">
+                        <Menu.Target>
+                          <ActionIcon
+                            variant={ownerFilter ? "light" : "subtle"}
+                            color={ownerFilter ? "blue" : "gray"}
+                            size="md"
+                            aria-label="Abrir opções de filtro"
+                          >
+                            {filterIcon}
+                          </ActionIcon>
+                        </Menu.Target>
+
+                        <Menu.Dropdown>
+                          {ownerFilterOptions.map((option) => {
+                            const isActive = ownerFilter?.toLowerCase() === option.owner.toLowerCase();
+
+                            return (
+                              <Menu.Item
+                                key={option.owner}
+                                onClick={() => setOwnerFilter(isActive ? null : option.owner)}
+                                color={isActive ? "blue" : undefined}
+                                leftSection={
+                                  option.avatarUrl ? (
+                                    <img
+                                      src={option.avatarUrl}
+                                      alt={option.label}
+                                      style={{ width: 16, height: 16, borderRadius: "50%" }}
+                                    />
+                                  ) : undefined
+                                }
+                              >
+                                {option.label}
+                              </Menu.Item>
+                            );
+                          })}
+                        </Menu.Dropdown>
+                      </Menu>
+                    }
+                    rightSectionPointerEvents="all"
                     variant="unstyled"
                   />
                 </div>

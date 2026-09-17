@@ -66,7 +66,15 @@ const CopyActionButton = ({ text, label }: { text: string; label: string }) => {
 
 export function RepoGrid({ repos, loading, token }: RepoGridProps) {
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
   const { colorScheme } = useMantineColorScheme();
+
+  const handleCopyAllRepos = async () => {
+    const cloneCommands = repos.map((repo) => `git clone ${repo.clone_url}`).join("\n") + "\n";
+    await navigator.clipboard.writeText(cloneCommands);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
 
   if (loading) {
     return (
@@ -176,7 +184,22 @@ export function RepoGrid({ repos, loading, token }: RepoGridProps) {
               <Table.Th>PRs</Table.Th>
               <Table.Th>Actions</Table.Th>
               <Table.Th>Pushed At</Table.Th>
-              <Table.Th>Clone</Table.Th>
+              <Table.Th>
+                <Group gap={6} justify="space-between" wrap="nowrap">
+                  <Text size="sm" fw={500}>Clone</Text>
+                  <ActionIcon
+                    variant={copiedAll ? "light" : "subtle"}
+                    color={copiedAll ? "green" : "gray"}
+                    size="md"
+                    aria-label="Copiar comandos git clone de todos os repositórios"
+                    onClick={handleCopyAllRepos}
+                  >
+                    <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M8 16h8a2 2 0 002-2v-2M8 16a2 2 0 002 2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8z" />
+                    </svg>
+                  </ActionIcon>
+                </Group>
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>{rows}</Table.Tbody>
