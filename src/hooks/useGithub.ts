@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllRecentRepos, validateToken, fetchPrCount, fetchRecentActions, rerunWorkflow, fetchUserProfile, fetchUserOrgs } from "../services/github";
+import { cancelWorkflow, fetchAllRecentRepos, validateToken, fetchPrCount, fetchRecentActions, rerunWorkflow, fetchUserProfile, fetchUserOrgs } from "../services/github";
 
 export function useGithubUser(token: string | null) {
   return useQuery({
@@ -43,7 +43,7 @@ export function useRecentActions(token: string | null, owner: string, name: stri
     queryKey: ["recent-actions", owner, name],
     queryFn: () => fetchRecentActions(token!, owner, name),
     enabled: !!token && enabled,
-    staleTime: 1000 * 30, 
+    refetchInterval: enabled ? 1000 * 30 : false,
   });
 }
 
@@ -53,6 +53,18 @@ export function useRerunWorkflow() {
   return useMutation({
     mutationFn: ({ token, owner, name, runId }: { token: string; owner: string; name: string; runId: number }) => 
       rerunWorkflow(token, owner, name, runId),
+    onSuccess: (_, { owner, name }) => {
+      queryClient.invalidateQueries({ queryKey: ["recent-actions", owner, name] });
+    },
+  });
+}
+
+export function useCancelWorkflow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ token, owner, name, runId }: { token: string; owner: string; name: string; runId: number }) =>
+      cancelWorkflow(token, owner, name, runId),
     onSuccess: (_, { owner, name }) => {
       queryClient.invalidateQueries({ queryKey: ["recent-actions", owner, name] });
     },

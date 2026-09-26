@@ -1,7 +1,8 @@
 import React from "react";
-import { Modal, Text, Group, Badge, Loader, Timeline, Avatar, ThemeIcon, Anchor, ActionIcon, Tooltip } from "@mantine/core";
+import { Modal, Text, Group, Badge, Loader, Timeline, Avatar, ThemeIcon, ActionIcon, Tooltip } from "@mantine/core";
+import { CircleX, Play, RefreshCw } from "lucide-react";
 import { GithubRepo } from "../types/github";
-import { useRecentActions, useRerunWorkflow } from "../hooks/useGithub";
+import { useCancelWorkflow, useRecentActions, useRerunWorkflow } from "../hooks/useGithub";
 
 interface ActionsModalProps {
   repo: GithubRepo | null;
@@ -10,35 +11,67 @@ interface ActionsModalProps {
   onClose: () => void;
 }
 
-// Botão de Rerun com estado de loading local (via mutation)
-const RerunButton = ({ token, owner, name, runId }: { token: string | null; owner: string; name: string; runId: number }) => {
-  const { mutate, isPending } = useRerunWorkflow();
+const ActionLinks = ({
+  token,
+  owner,
+  name,
+  runId,
+  status,
+}: {
+  token: string | null;
+  owner: string;
+  name: string;
+  runId: number;
+  status: string;
+}) => {
+  const { mutate: rerunWorkflow, isPending: isRerunning } = useRerunWorkflow();
+  const { mutate: cancelWorkflow, isPending: isCancelling } = useCancelWorkflow();
+  const canCancel = status === "in_progress" || status === "queued";
 
   const handleRerun = () => {
-    if (token) {
-      mutate({ token, owner, name, runId });
+    if (token && window.confirm("Deseja reexecutar esta action?")) {
+      rerunWorkflow({ token, owner, name, runId });
+    }
+  };
+
+  const handleCancel = () => {
+    if (token && window.confirm("Deseja cancelar esta action?")) {
+      cancelWorkflow({ token, owner, name, runId });
     }
   };
 
   return (
-    <Tooltip label="Re-executar Workflow" withArrow>
-      <ActionIcon 
-        variant="subtle" 
-        color="gray" 
-        size="sm" 
-        loading={isPending} 
+    <Group gap={4}>
+      {canCancel && (
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="sm"
+          aria-label="Cancelar"
+          onClick={handleCancel}
+          loading={isCancelling}
+          disabled={!token || isRerunning}
+        >
+          <CircleX size={14} />
+        </ActionIcon>
+      )}
+      <ActionIcon
+        variant="subtle"
+        color="gray"
+        size="sm"
+        aria-label="Rerun"
         onClick={handleRerun}
+        loading={isRerunning}
+        disabled={!token || isCancelling}
       >
-        <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
+        <Play size={14} />
       </ActionIcon>
-    </Tooltip>
+    </Group>
   );
 };
 
 export function ActionsModal({ repo, token, opened, onClose }: ActionsModalProps) {
-  const { data: actions, isLoading } = useRecentActions(
+  const { data: actions, isLoading, isFetching, refetch } = useRecentActions(
     token, 
     repo?.owner.login ?? "", 
     repo?.name ?? "", 
@@ -73,9 +106,7 @@ export function ActionsModal({ repo, token, opened, onClose }: ActionsModalProps
     if (conclusion === "failure") {
       return (
         <ThemeIcon size={20} color="red" radius="xl">
-          <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <CircleX size={12} />
         </ThemeIcon>
       );
     }
@@ -91,9 +122,38 @@ export function ActionsModal({ repo, token, opened, onClose }: ActionsModalProps
       centered
       opened={opened} 
       onClose={onClose} 
-      title={<Text fw={700}>Actions: {repo?.name}</Text>}
+      title={
+        <Group gap="xs" align="center">
+          <Text fw={700}>Actions: {repo?.name}</Text>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              size="sm"
+              aria-label="Atualizar actions"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw
+                size={14}
+                style={{
+                  animation: isFetching ? "actions-modal-refresh-spin 1s linear infinite" : undefined,
+                }}
+              />
+            </ActionIcon>
+        </Group>
+      }
       size="lg"
     >
+      <style>{`
+        @keyframes actions-modal-refresh-spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
       {isLoading ? (
         <Group justify="center" p="xl">
           <Loader />
@@ -109,31 +169,43 @@ export function ActionsModal({ repo, token, opened, onClose }: ActionsModalProps
               title={
                 <Group gap="xs" justify="space-between" align="center">
                   <Group gap="xs">
-                    <Text size="sm" fw={500} component="span">{action.name}</Text>
+                    <Text
+                      c="dimmed"
+                      size="xs" 
+              
+                      
+                    >
+                      {action.name}
+                    </Text>
                     <Badge 
                       size="xs" 
-                      color={getStatusColor(action.status, action.conclusion)} 
+                      color="gray"
                       variant="light"
                     >
-                      {action.conclusion || action.status}
+                      {action.head_branch || action.conclusion || action.status}
                     </Badge>
                   </Group>
-                  
-                  {/* Botão de Rerun se falhou */}
-                  {action.conclusion === 'failure' && repo && (
-                    <RerunButton 
-                      token={token} 
-                      owner={repo.owner.login} 
-                      name={repo.name} 
-                      runId={action.id} 
-                    />
-                  )}
                 </Group>
               }
             >
-              <Text c="dimmed" size="xs" mt={4}>
-                {action.display_title}
-              </Text>
+              <Text size="xs" mt={4}         component="a"
+                      href={action.html_url}
+                      target="_blank"
+                      style={{ color: "inherit", textDecoration: "none" }}
+                      rel="noreferrer" styles={{
+                        root: {
+                          cursor: "pointer",
+                        },
+                      }}
+                      onMouseEnter={(event) => {
+                        event.currentTarget.style.textDecoration = "underline";
+                      }}
+                      onMouseLeave={(event) => {
+                        event.currentTarget.style.textDecoration = "none";
+                      }}
+                    >
+                      {action.display_title}
+                    </Text>
               
               <Group gap="xs" mt={4}>
                 <Avatar src={action.actor.avatar_url} size={20} radius="xl" />
@@ -144,10 +216,15 @@ export function ActionsModal({ repo, token, opened, onClose }: ActionsModalProps
                 <Text size="xs" c="dimmed">
                   {new Date(action.created_at).toLocaleString("pt-BR")}
                 </Text>
-                <Text size="xs" c="dimmed">•</Text>
-                <Anchor href={action.html_url} target="_blank" size="xs">
-                  Ver Logs
-                </Anchor>
+                {repo && (
+                  <ActionLinks
+                    token={token}
+                    owner={repo.owner.login}
+                    name={repo.name}
+                    runId={action.id}
+                    status={action.status}
+                  />
+                )}
               </Group>
             </Timeline.Item>
           ))}

@@ -21,6 +21,9 @@
   "chrome_url_overrides": {
     "newtab": "src/newtab.html"
   },
+  "host_permissions": [
+    "https://api.github.com/*"
+  ],
   "permissions": [
     "storage"
   ]
